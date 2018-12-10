@@ -1,0 +1,3 @@
+make delete
+make
+./showBMP
