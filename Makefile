@@ -54,3 +54,6 @@ $(PROG):  $(OBJS)
 # or any of the header files changes
 %.o : %.cpp $(HDRS) 
 	$(C++) -c $(CFLAGS) $(INCLUDE) $<
+
+delete:
+	rm readBMP.o showBMP showBMP.o
