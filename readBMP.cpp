@@ -8,13 +8,12 @@
 
 #include <stdio.h>      // Header file for standard file i/o.
 #include <stdlib.h>     // Header file for malloc/free.
-#include <math.h>
+
 #include "readBMP.h"
 
 #define btoa(x) ((x)?"true":"false")
 
-#define min_f(a, b, c)  (fminf(a, fminf(b, c)))
-#define max_f(a, b, c)  (fmaxf(a, fmaxf(b, c)))
+
 /* Simple BMP reading code, should be adaptable to many
 systems. Originally from Windows, ported to Linux, now works on my Mac
 OS system.
@@ -141,112 +140,7 @@ int ImageLoad(char *filename, Image *image) {
 	    image->data[i+2] = temp;
     }
     
-    unsigned char filter = 3;
-    printf("Aplicando Combolucion %i \n", filter);
-    //applyCombolutionIMG(image, filter);
-    applyRGB2HSV(image);
+    
     // we're done.
     return 1;
-}
-
-
-/*
-Self Operation
-*/
-void getCombMatrix(int* matrix, int filter){
-    int init = (filter - 1) / -2;
-    for(int i=0; i < filter; i++){
-        matrix[i] = init++;
-        printf(" %d ", matrix[i]);
-    }
-}
-
-void applyCombolutionIMG(Image *image, unsigned char filter){
-    unsigned char* combMat = (unsigned char *) malloc(image->sizeX * image->sizeY * 3);
-    int matrix[filter];
-    getCombMatrix(matrix, filter);
-    char tmp = 0;
-    for(long i = 0; i <= image->sizeX; i++){
-        for(long e = 0; e <= image->sizeY; e++){
-            unsigned char sum_red = 0, sum_green = 0, sum_blue = 0;
-            for(int a=0; a < filter; a++){
-                for(int b=0; b < filter; b++){
-                    int x = i + matrix[a];
-                    int y = e + matrix[b];
-                    if(!(x < 0) && !(y < 0) && !(y >= image->sizeY+2) && !(x >= image->sizeX+2)){
-                        int st = (image->sizeX * y + x ) * 3;
-                        unsigned char ttl = filter*filter;
-                        sum_red += image->data[st] / ttl;
-                        sum_green += image->data[st + 1] / ttl;
-                        sum_blue += image->data[st + 2] / ttl;
-                        
-                        if( i == 100 && e == 100)
-                            printf("i= %d, e=%d, x=%d, y=%d val=%d vald=%d st=%d\n",i,e,x,y, image->data[st], image->data[st]/ttl, st);
-                    }
-                }
-            }
-
-            combMat[ (image->sizeX * e + i ) * 3     ] = sum_red   ;
-            combMat[((image->sizeX * e + i ) * 3) + 1] = sum_green ;
-            combMat[((image->sizeX * e + i ) * 3) + 2] = sum_blue  ;
-            if( i == 100 && e == 100)
-                printf("S = %d\n", image->data[((image->sizeY * i + e ) * 3) + 1]);
-            if( i == 100 && e == 100)
-                printf("S = %d\n", combMat[((image->sizeY * i + e ) * 3) + 1]);
-        }
-        tmp++;
-    }
-    image->data = combMat;
-}
-
-void applyRGB2HSV(Image *image){
-    unsigned char* combMat = (unsigned char *) malloc(image->sizeX * image->sizeY * 3);
-    unsigned char* img = image->data;
-    for(long i = 0; i <= image->sizeX * image->sizeY * 3; i+=3){
-        rgb2hsv_pixel(img[i], img[i+1], img[i+2], combMat[i], combMat[i+1], combMat[i+2]);
-        //printf("%d %d %d", combMat[i], combMat[i+1], combMat[i+2]);
-    }
-    image->data = combMat;
-}
-
-void rgb2hsv_pixel(unsigned char &src_r, unsigned char &src_g, unsigned char &src_b, unsigned char &dst_h, unsigned char &dst_s, unsigned char &dst_v)
-{
-    float r = src_r / 255.0f;
-    float g = src_g / 255.0f;
-    float b = src_b / 255.0f;
-
-    float h, s, v; // h:0-360.0, s:0.0-1.0, v:0.0-1.0
-
-    float max = max_f(r, g, b);
-    float min = min_f(r, g, b);
-
-    v = max;
-
-    if (max == 0.0f) {
-        s = 0;
-        h = 0;
-    }
-    else if (max - min == 0.0f) {
-        s = 0;
-        h = 0;
-    }
-    else {
-        s = (max - min) / max;
-
-        if (max == r) {
-            h = 60 * ((g - b) / (max - min)) + 0;
-        }
-        else if (max == g) {
-            h = 60 * ((b - r) / (max - min)) + 120;
-        }
-        else {
-            h = 60 * ((r - g) / (max - min)) + 240;
-        }
-    }
-
-    if (h < 0) h += 360.0f;
-
-    dst_h = (unsigned char)(h / 2);   // dst_h : 0-180
-    dst_s = (unsigned char)(s * 255); // dst_s : 0-255
-    dst_v = (unsigned char)(v * 255); // dst_v : 0-255
 }
