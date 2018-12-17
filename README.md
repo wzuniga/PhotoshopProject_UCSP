@@ -4,7 +4,7 @@ Work with QT
 
 ## Compile the application
 Clone the repository
-git clone https://github.com/erickTornero/Image-Processing.git
+git clone https://github.com/wzuniga/PhotoshopProject_UCSP.git
 
 Access Folder
 cd PhotoshopProject_UCSP/qt_development/ImageProject
