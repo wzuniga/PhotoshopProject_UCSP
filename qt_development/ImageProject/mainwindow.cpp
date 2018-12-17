@@ -1,6 +1,6 @@
 #include <QTextStream>
 #include <QFileDialog>
-
+# include <math.h>
 # include <iostream>
 # include <fstream>
 # include <string.h>
@@ -19,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->readBMP, SIGNAL (pressed()),this, SLOT (on_read_pressed()));
     connect(ui->convolution, SIGNAL (pressed()),this, SLOT (on_convolution_pressed()));
+    connect(ui->polinomial, SIGNAL (pressed()),this, SLOT (on_polinomial_pressed()));
+
     //ui->graphicView->setMatrix(pix.);
 }
 
@@ -123,17 +125,26 @@ void getCombMatrixMean(int* matrix, int filter){
         matrix[i] = init++;
 }
 
-void charArrToQImage(unsigned char *data, QImage *image, int widgt_map, int height_map){
+void charArrToQImage(unsigned char *data, QImage *image, int widgt_map, int height_map, int type){
+    if(type == QImage::Format_RGB888){
     for(int x = 0; x < widgt_map; x++){
         int r = 0;
         for(int y = 0; y < height_map; y++){
             int st = (y*widgt_map + x)*3;
 
             image->setPixelColor((x), height_map - y- 1, QColor(data[ st],data[st +1],data[st +2]));
-            //if (x == 100 &&y == 100)
-            //    QTextStream(stdout) << x << " " << y << " "<< st << endl;
             r++;
 
+        }
+    }
+    }
+    else if (QImage::Format_Grayscale8){
+        for(int x = 0; x < widgt_map; x++){
+            for(int y = 0; y < height_map; y++){
+                int st = (y*widgt_map + x);
+
+                image->setPixelColor((x), height_map - y- 1, QColor(data[ st],data[st ],data[st ]));
+            }
         }
     }
 }
@@ -148,7 +159,7 @@ void MainWindow::on_read_pressed()
     if(charMap != nullptr){
         QImage image(widgt_map, height_map, QImage::Format_RGB888);
 
-        charArrToQImage(charMap, &image, widgt_map, height_map);
+        charArrToQImage(charMap, &image, widgt_map, height_map, QImage::Format_RGB888);
         pixelMap = QPixmap::fromImage(image);
 
         ui->label->setPixmap(pixelMap);
@@ -167,15 +178,11 @@ void MainWindow::on_convolution_pressed()
         int filter = ui->filterSize->text().toInt();
         int matrix[filter];
         getCombMatrixMean(matrix, filter);
-        QTextStream(stdout) << "Filter: " << filter << endl;
         char tmp = 0;
         int H = height_map;
         int W = widgt_map;
-        QTextStream(stdout) << "H: " << H << " W: "<< W << endl;
         for(long i = 0; i < H; i++){
-            QTextStream(stdout) << "i: " << i << endl;
             for(long e = 0; e < W; e++){
-                QTextStream(stdout) << "e: " << e << endl;
                 unsigned char sum_red = 0, sum_green = 0, sum_blue = 0;
                 for(int a=0; a < filter; a++){
                     for(int b=0; b < filter; b++){
@@ -190,23 +197,123 @@ void MainWindow::on_convolution_pressed()
                         }
                     }
                 }
-                //QTextStream(stdout) << "Start Bucle " << (H * e + i ) * 3  << endl;
                 combMat[ (H * e + i ) * 3     ] = sum_red   ;
-                //QTextStream(stdout) << " Bucle " << 1  << endl;
                 combMat[((H * e + i ) * 3) + 1] = sum_green ;
-                //QTextStream(stdout) << " Bucle " << 2 << endl;
                 combMat[((H * e + i ) * 3) + 2] = sum_blue  ;
-                //QTextStream(stdout) << "Fin Bucle " << e << endl;
             }
             tmp++;
         }
-        QTextStream(stdout) << "End Convolution" << endl;
+
         QImage image(widgt_map, height_map, QImage::Format_RGB888);
-        charArrToQImage(combMat, &image, widgt_map, height_map);
+        charArrToQImage(combMat, &image, widgt_map, height_map, QImage::Format_RGB888);
 
         pixelMap = QPixmap::fromImage(image);
 
         ui->imgConvo->setPixmap(pixelMap);
-        //image->data = combMat;
+        ui->outputAlg->setText("Convolution");
     }
+}
+
+double Power2(unsigned char value, int p){
+    if(p == 0 ) return 1.0;
+    return (double)value*Power2(value, p - 1);
+}
+
+void MainWindow::on_polinomial_pressed()
+{
+    int size = height_map*widgt_map*3;
+    unsigned char * data = new unsigned char[size];
+    for(int i = 0; i < size; i++){
+        double temp = 0;
+        temp += ui->spinBox_1->text().toInt() * Power2(charMap[i], 2);
+        temp += ui->spinBox_2->text().toInt() * Power2(charMap[i], 1);
+        temp += ui->spinBox_3->text().toInt() * Power2(charMap[i], 0);
+        int response = (int) temp;
+        data[i] = (unsigned char)(response > 255 ? 255 : (response < 0 ? 0:response));
+    }
+
+    QImage image(widgt_map, height_map, QImage::Format_RGB888);
+    charArrToQImage(data, &image, widgt_map, height_map, QImage::Format_RGB888);
+    pixelMap = QPixmap::fromImage(image);
+
+    ui->imgConvo->setPixmap(pixelMap);
+    ui->outputAlg->setText("Polinomial Filter");
+}
+
+void MainWindow::on_dft_pressed()
+{
+
+    int szGray = widgt_map*height_map;
+
+    double Rp = 0.2;
+    double Gp = 0.7;
+    double Bp = 0.1;
+
+    unsigned char * grayscale = new unsigned char[szGray];
+    for(int i = 0, k = 0; i < szGray*3; i+=3, k++){
+        double val= Rp*(double)charMap[i] + Gp*(double)charMap[i+1] + Bp*(double)charMap[i+2];
+        grayscale[k] = (unsigned char)val;
+    }
+
+    double *PkbReal = new double[widgt_map*height_map];
+    double *PkbIm = new double[widgt_map*height_map];
+    int k, b, a, l;
+#pragma omp parallel for num_threads(4) shared(PkbReal, PkbIm) collapse(2) private(k, b, a)
+    for(k = 0; k < height_map; k++){
+        for(b = 0; b < widgt_map; b++){
+            double sumReal = 0.0;
+            double sumIm = 0.0;
+            for(a = 0; a < height_map; a++){
+                double theta = -2.0*3.1416*k*a/height_map;
+                sumReal += (double)grayscale[b + widgt_map*a]*cosf(theta);
+                sumIm += (double)grayscale[b + widgt_map*a]*sinf(theta);
+            }
+            PkbReal[b + widgt_map*k] = sumReal/(double)height_map;
+            PkbIm[b + widgt_map*k] = sumIm/(double)height_map;
+        }
+    }
+    unsigned char * real = new unsigned char[widgt_map*height_map];
+#pragma omp parallel for num_threads(4) shared(Dft, PkbReal, PkbIm) collapse(2) private(k, l, b)
+    for(k = 0; k < height_map; k++){
+        for(l = 0; l < widgt_map; l++){
+            double sumReal = 0.0;
+            double sumIm = 0.0;
+            for(b = 0; b < widgt_map; b++){
+                double theta = -2.0*3.1416*l*b/widgt_map;
+                sumReal += (double)PkbReal[b + k*widgt_map]*cosf(theta) - (double)PkbIm[b+k*widgt_map]*sinf(theta);
+                sumIm += (double)PkbReal[b + k*widgt_map]*sinf(theta) + (double)PkbIm[b+k*widgt_map]*cos(theta);
+            }
+            sumReal = sumReal/widgt_map;
+            sumIm += sumIm/widgt_map;
+            sumReal = sqrtf(sumReal*sumReal + sumIm*sumIm);
+            real[k*widgt_map + l] = (unsigned char) sumReal;
+        }
+    }
+
+    int hmid = height_map/2, wmid = widgt_map/2;
+#pragma omp parallel for num_trheads(4) collapse(2) private(hmid, wmid)
+    for(int i = 0; i < wmid; i++){
+        for(int j = 0; j < hmid; j++){
+            unsigned char tmp = real[i + j*widgt_map];
+            real[i + j*widgt_map] = real[widgt_map - wmid + i + (hmid+j)*widgt_map];
+            real[widgt_map - wmid + i + (hmid+j)*widgt_map] = tmp;
+        }
+    }
+
+#pragma omp parallel for num_trheads(4) collapse(2) private(hmid, wmid)
+    for(int i = widgt_map - wmid; i < widgt_map; i++){
+        for(int j = 0; j < hmid; j++){
+            unsigned char tmp = real[i + j*widgt_map];
+            real[i + j*widgt_map] = real[i - wmid + (hmid+j)*widgt_map];
+            real[i - wmid + (hmid+j)*widgt_map] = tmp;
+        }
+    }
+
+
+    QImage image(widgt_map, height_map, QImage::Format_Grayscale8);
+    charArrToQImage(real, &image, widgt_map, height_map, QImage::Format_Grayscale8);
+    pixelMap = QPixmap::fromImage(image);
+
+    ui->imgConvo->setPixmap(pixelMap);
+    ui->outputAlg->setText("Discrete Fourier Transform");
 }

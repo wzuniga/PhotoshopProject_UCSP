@@ -26,12 +26,10 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp \
-        #readBMP.cpp
+        mainwindow.cpp
 
 HEADERS += \
-        mainwindow.h \
-        #readBMP.h
+        mainwindow.h
 
 FORMS += \
         mainwindow.ui

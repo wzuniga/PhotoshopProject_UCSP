@@ -25,6 +25,8 @@ private:
 private slots:
     void on_read_pressed();
     void on_convolution_pressed();
+    void on_polinomial_pressed();
+    void on_dft_pressed();
 };
 
 #endif // MAINWINDOW_H
