@@ -22,3 +22,9 @@ make
 ## execute
 ./ImageProject.app/Contents/MacOS/ImageProject
 
+## example
+
+![alt text](img/img1)
+![alt text](img/img2)
+![alt text](img/img3)
+
