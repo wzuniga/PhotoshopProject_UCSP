@@ -24,7 +24,7 @@ make
 
 ## example
 
-![alt text](img/img1)
-![alt text](img/img2)
-![alt text](img/img3)
+![alt text](img/img1.png)
+![alt text](img/img2.png)
+![alt text](img/img3.png)
 
